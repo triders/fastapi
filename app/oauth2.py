@@ -4,7 +4,8 @@ from fastapi.security import OAuth2PasswordBearer
 from fastapi import Depends, status, HTTPException
 from sqlalchemy.orm import Session
 
-from . import schemas, models
+from . import models
+from .schemas import login_schema
 from .database import get_db
 from .creds import SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM
 
@@ -20,14 +21,14 @@ def create_access_token(data: dict) -> str:
     return access_token
 
 
-def get_token_data(token: str, credential_exception) -> schemas.TokenData:
+def get_token_data(token: str, credential_exception) -> login_schema.TokenData:
     """Validates the token and returns its payload"""
     try:
         payload = jwt.decode(token, SECRET_KEY, ALGORITHM)
         id: str = payload.get("user_id")
         if id is None:
             raise credential_exception
-        token_data = schemas.TokenData(id=id)
+        token_data = login_schema.TokenData(id=id)
     except JWTError:
         raise credential_exception
     return token_data

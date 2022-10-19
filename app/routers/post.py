@@ -2,9 +2,10 @@ from typing import List
 from fastapi import status, HTTPException, Depends, APIRouter
 from sqlalchemy.orm import Session
 
-from app import models
-from app.database import get_db
-from app import schemas, oauth2
+from .. import models
+from ..schemas import post_schema
+from ..database import get_db
+from .. import oauth2
 
 router = APIRouter(
     prefix="/posts",
@@ -13,22 +14,37 @@ router = APIRouter(
 
 
 @router.get(
-    "/",
-    response_model=List[schemas.PostResponse])
+    "/all",
+    response_model=List[post_schema.PostResponse])
 def get_posts(
-        db: Session = Depends(get_db),
-        current_user: models.User = Depends(oauth2.get_current_user)):
+        db: Session = Depends(get_db)):
+    """A guest can see all posts created by any users"""
     posts = db.query(models.Post).all()
     return posts
 
 
 @router.get(
+    "/my",
+    response_model=List[post_schema.PostResponse])
+def get_post(
+        db: Session = Depends(get_db),
+        current_user: models.User = Depends(oauth2.get_current_user)
+):
+    """A user can see all his post"""
+    posts = db.query(models.Post).filter(models.Post.user_id == current_user.id).all()
+    if not posts:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"You don't have any posts")
+    return posts
+
+
+@router.get(
     "/{id}",
-    response_model=schemas.PostResponse)
+    response_model=post_schema.PostResponse)
 def get_post(
         id: int,
-        db: Session = Depends(get_db),
-        current_user: models.User = Depends(oauth2.get_current_user)):
+        db: Session = Depends(get_db)):
+    """A guest can see any exact post created by any user"""
     post = db.query(models.Post).filter(models.Post.id == id).first()
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -39,12 +55,12 @@ def get_post(
 @router.post(
     "/",
     status_code=status.HTTP_201_CREATED,
-    response_model=schemas.PostResponse)
+    response_model=post_schema.PostResponse)
 def create_post(
-        post: schemas.PostRequest,
+        post: post_schema.PostRequest,
         db: Session = Depends(get_db),
         current_user: models.User = Depends(oauth2.get_current_user)):
-    new_post = models.Post(**post.dict())
+    new_post = models.Post(**post.dict(), user_id=current_user.id)
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
@@ -59,24 +75,36 @@ def delete_post(
         db: Session = Depends(get_db),
         current_user: models.User = Depends(oauth2.get_current_user)):
     post_query = db.query(models.Post).filter(models.Post.id == id)
+    post = post_query.first()
+
     if post_query.first() is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Post with id '{id}' was not found")
+
+    if post.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have rights to delete this post.")
     post_query.delete()
     db.commit()
 
 
 @router.put(
     "/{id}",
-    response_model=schemas.PostResponse)
+    response_model=post_schema.PostResponse)
 def update_post(
         id: int,
-        post: schemas.PostRequest,
+        post: post_schema.PostRequest,
         db: Session = Depends(get_db),
         current_user: models.User = Depends(oauth2.get_current_user)):
     post_query = db.query(models.Post).filter(models.Post.id == id)
-    if post_query.first() is None:
+    old_post_data = post_query.first()
+
+    if old_post_data is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Post with id '{id}' was not found")
-    post_query.update(post.dict())
+    if old_post_data.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have rights to update this post.")
+
+    new_post_data = post.dict()
+    new_post_data.update({"user_id": current_user.id})
+    post_query.update(new_post_data)
     db.commit()
     updated_post = post_query.first()
     return updated_post
