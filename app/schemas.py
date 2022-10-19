@@ -3,6 +3,7 @@ from pydantic import BaseModel, EmailStr
 from datetime import datetime
 
 
+# Posts
 class PostBase(BaseModel):
     title: str
     content: str
@@ -21,6 +22,7 @@ class PostResponse(PostBase):
     created_at: datetime
 
 
+# Users
 class UserBase(BaseModel):
     email: EmailStr
 
@@ -35,3 +37,24 @@ class UserRequest(UserBase):
 class UserResponse(UserBase):
     id: int
     created_at: datetime
+
+
+# Login
+class LoginBase(BaseModel):
+    email: EmailStr
+
+    class Config:
+        orm_mode = True
+
+
+class LoginRequest(LoginBase):
+    password: str
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    id: Optional[str] = None
