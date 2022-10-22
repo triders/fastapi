@@ -1,6 +1,7 @@
 from typing import List
 from fastapi import status, HTTPException, Depends, APIRouter
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from .. import models
 from ..schemas import post_schema
@@ -15,11 +16,14 @@ router = APIRouter(
 
 @router.get(
     "/all",
-    response_model=List[post_schema.PostResponse])
+    response_model=List[post_schema.PostResponse]
+)
 def get_posts(
         db: Session = Depends(get_db)):
     """A guest can see all posts created by any users"""
-    posts = db.query(models.Post).all()
+    posts = db.query(models.Post, func.count(models.Vote.post_id).label("votes")) \
+        .join(models.Vote, models.Vote.post_id == models.Post.id, isouter=True) \
+        .group_by(models.Post.id).all()
     return posts
 
 
@@ -31,7 +35,10 @@ def get_post(
         current_user: models.User = Depends(oauth2.get_current_user)
 ):
     """A user can see all his post"""
-    posts = db.query(models.Post).filter(models.Post.user_id == current_user.id).all()
+    posts = db.query(models.Post, func.count(models.Vote.post_id).label("votes")) \
+        .join(models.Vote, models.Vote.post_id == models.Post.id, isouter=True) \
+        .filter(models.Post.user_id == current_user.id).group_by(models.Post.id) \
+        .all()
     if not posts:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"You don't have any posts")
@@ -45,7 +52,9 @@ def get_post(
         id: int,
         db: Session = Depends(get_db)):
     """A guest can see any exact post created by any user"""
-    post = db.query(models.Post).filter(models.Post.id == id).first()
+    post = db.query(models.Post, func.count(models.Vote.post_id).label("votes")) \
+        .join(models.Vote, models.Vote.post_id == models.Post.id, isouter=True) \
+        .filter(models.Post.id == id).group_by(models.Post.id).first()
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Post with id '{id}' was not found")

@@ -17,7 +17,15 @@ class PostRequest(PostBase):
     pass
 
 
-class PostResponse(PostBase):
+class PostResponseBase(PostBase):
     id: int
     created_at: datetime
     user: UserResponse
+
+
+class PostResponse(BaseModel):
+    Post: PostResponseBase
+    votes: int
+
+    class Config:
+        orm_mode = True

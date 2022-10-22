@@ -1,4 +1,6 @@
 .idea/
 venv/
 __pycache__/
-/app/creds.py
+/app/config.py
+config.py
+.env

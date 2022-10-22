@@ -7,7 +7,11 @@ from sqlalchemy.orm import Session
 from . import models
 from .schemas import login_schema
 from .database import get_db
-from .creds import SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM
+from .config import env_vars
+
+SECRET_KEY = env_vars.SECRET_KEY
+ACCESS_TOKEN_EXPIRE_MINUTES = env_vars.ACCESS_TOKEN_EXPIRE_MINUTES
+ALGORITHM = env_vars.ALGORITHM
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
