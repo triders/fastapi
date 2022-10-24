@@ -64,7 +64,7 @@ def get_post(
 @router.post(
     "/",
     status_code=status.HTTP_201_CREATED,
-    response_model=post_schema.PostResponse)
+    response_model=post_schema.PostResponseBase)
 def create_post(
         post: post_schema.PostRequest,
         db: Session = Depends(get_db),
@@ -97,7 +97,7 @@ def delete_post(
 
 @router.put(
     "/{id}",
-    response_model=post_schema.PostResponse)
+    response_model=post_schema.PostResponseBase)
 def update_post(
         id: int,
         post: post_schema.PostRequest,
