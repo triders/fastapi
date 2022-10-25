@@ -1,6 +1,4 @@
 .idea/
 venv/
 __pycache__/
-/app/config.py
-config.py
 .env
