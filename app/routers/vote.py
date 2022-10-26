@@ -18,12 +18,13 @@ def vote_on_post(
         db: Session = Depends(get_db),
         current_user: models.User = Depends(oauth2.get_current_user)
 ):
+    """A user can add or remove vote on any published post"""
 
-    # check that post exists
-    post = db.query(models.Post).filter(models.Post.id == vote.post_id).first()
+    # check that post exists and is in published state
+    post = db.query(models.Post).filter(models.Post.id == vote.post_id, models.Post.is_published == True).first()
     if post is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Post doesn't exist")
+                            detail="There is no published post with given id")
 
     # vote
     vote_query = db.query(models.Vote).filter(

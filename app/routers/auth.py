@@ -16,6 +16,7 @@ router = APIRouter(
 
 @router.post("/", response_model=login_schema.Token)
 def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    """A guest can log in with a valid creds after registration"""
 
     user = db.query(models.User).filter(models.User.email == user_credentials.username).first()
     if user is None:

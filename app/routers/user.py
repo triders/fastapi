@@ -18,6 +18,7 @@ router = APIRouter(
     status_code=status.HTTP_201_CREATED
 )
 def create_user(user: user_schema.UserRequest, db: Session = Depends(get_db)):
+    """A guest can register"""
     user.password = hash_password(user.password)
     new_user = models.User(**user.dict())
     db.add(new_user)
@@ -35,6 +36,7 @@ def create_user(user: user_schema.UserRequest, db: Session = Depends(get_db)):
     response_model=user_schema.UserResponse
 )
 def get_user(id: int, db: Session = Depends(get_db)):
+    """A guest can get user info by id"""
     user = db.query(models.User).filter(models.User.id == id).first()
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
